@@ -115,6 +115,7 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 python manage.py migrate
+python manage.py seed_products   # optional — see note below
 python manage.py createsuperuser # for /admin/ — this is how you'll actually
                                   # add your own products/categories with
                                   # real names, prices, and images
@@ -122,14 +123,16 @@ python manage.py createsuperuser # for /admin/ — this is how you'll actually
 python manage.py runserver
 ```
 
-**Note on sample data:** `python manage.py seed_products` exists in
-`store/management/commands/seed_products.py` and will load 25 generic
-demo products across 5 categories if you want something to look at
-immediately. It's entirely optional — the intended way to populate the
-catalog is through **Django admin** (`/admin/store/product/`), where you
-can add real products with real images, as shown in the screenshots
-below. If you don't run `seed_products`, the catalog just starts empty
-until you add products yourself.
+**Note on sample data:** if you want something to look at immediately,
+create a `seed_products.py` file at
+`store/management/commands/seed_products.py` and run
+`python manage.py seed_products` after `python manage.py migrate` — it
+will load generic demo products across the given categories. It's
+entirely optional — the intended way to populate the catalog is through
+**Django admin** (`/admin/store/product/`), where you can add real
+products with real images, as shown in the screenshots below. If you
+don't run `seed_products`, the catalog just starts empty until you add
+products yourself.
 
 Checkout works without any extra setup for browsing/cart, but placing a
 real order requires bKash credentials — see the **Payments** section
@@ -139,7 +142,7 @@ Then open:
 - `http://127.0.0.1:8000/` — redirects to the product list page
 - `http://127.0.0.1:8000/products/` — server-rendered product list with live search
 - `http://127.0.0.1:8000/products/<slug>/` — product detail page
-- `http://127.0.0.1:8000/api` — browsable JSON API
+- `http://127.0.0.1:8000/api/` — browsable JSON API
 - `http://127.0.0.1:8000/admin/` — Django admin
 
 ## Key API Endpoints
@@ -310,7 +313,7 @@ ecommerce_app/
 │   ├── admin.py                  # CategoryAdmin, ProductAdmin — category
 │   │                              # add/edit/delete happens here, not in templates
 │   ├── templatetags/store_extras.py   # `highlight` filter for search matches
-│   ├── management/commands/seed_products.py
+│   ├── management/commands/seed_products.py  # optional demo data
 │   └── templates/
 │       ├── registration/
 │       │   ├── login.html
