@@ -56,10 +56,12 @@ below for what this confirms.
 
 ![Confirmation email](docs/screenshots/14_payment_confirmation_email.png)
 
-Note: sending an email on successful payment isn't part of the code in
-this repo — this reflects something added on top of it. If you want a
-hand wiring up `send_mail()` inside `bkash_callback_view` on the
-`order.status = "paid"` branch, ask and it can be added properly.
+Implemented via `store/signals.py` + `store/receivers.py` (a signal fires
+when an order is paid, a receiver listens and sends the email) and
+`store/forms.py`'s `SignupForm`, which extends signup to collect an
+email address for exactly this purpose. This was added independently of
+the base build documented here — the exact signal/trigger logic lives
+in those files, not described further in this README.
 </details>
 
 ## Features
@@ -87,10 +89,12 @@ hand wiring up `send_mail()` inside `bkash_callback_view` on the
     clears the cart. Redirects to `/products/checkout/<id>/success/`.
   - `/accounts/login/`, `/accounts/signup/`, `/accounts/logout/` — auth.
     Login/logout use Django's built-in `LoginView`/`LogoutView` with custom
-    templates; signup is a small view using `UserCreationForm`. Anonymous
-    users hitting `/products/checkout/` get redirected to
-    `/accounts/login/?next=/products/checkout/` and land back on checkout
-    automatically after signing in (or signing up).
+    templates; signup uses `SignupForm` (`store/forms.py`), extended beyond
+    Django's default `UserCreationForm` to also collect an email address —
+    used for order confirmation emails, see `store/signals.py` /
+    `store/receivers.py`. Anonymous users hitting `/products/checkout/` get
+    redirected to `/accounts/login/?next=/products/checkout/` and land back
+    on checkout automatically after signing in (or signing up).
 - **Payment: bKash Tokenized Checkout** (`store/payments/bkash.py`) —
   Bangladesh's mobile financial services gateway. See the "Payments" section
   below before trying to actually pay with it.
@@ -123,7 +127,7 @@ python manage.py createsuperuser # for /admin/ — this is how you'll actually
 python manage.py runserver
 ```
 
-**Note on sample data:** if you want something to look at immediately,
+**Note on sample data:** If you want something to look at immediately,
 create a `seed_products.py` file at
 `store/management/commands/seed_products.py` and run
 `python manage.py seed_products` after `python manage.py migrate` — it
@@ -294,7 +298,7 @@ frontend:
 ## Project structure
 
 ```
-ecommerce_app/
+E_Commerce/
 ├── manage.py
 ├── requirements.txt               # incl. requests (bKash calls) + python-dotenv (.env loading)
 ├── .env.example                  # bKash credential template — copy to .env
@@ -303,6 +307,11 @@ ecommerce_app/
 │   └── settings.py, urls.py, wsgi.py, asgi.py
 ├── store/
 │   ├── models.py                 # Category, Product, Order (+ bKash fields), OrderItem
+│   ├── forms.py                  # SignupForm — extends signup with an email
+│   │                              # field, used for order confirmation emails
+│   ├── signals.py                # fires on order payment (see receivers.py)
+│   ├── receivers.py              # listens for that signal, sends the order
+│   │                              # confirmation email (see screenshot below)
 │   ├── cart.py                   # session-based Cart class
 │   ├── context_processors.py     # exposes `cart` to every template
 │   ├── payments/bkash.py         # bKash Tokenized Checkout API client
