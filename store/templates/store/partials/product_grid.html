@@ -1,0 +1,30 @@
+{% load store_extras %}
+{% if products %}
+  <div class="results-meta muted">{{ products|length }} product{{ products|length|pluralize }}</div>
+  <div class="results-grid">
+    {% for product in products %}
+      <a class="card product-card" href="{% url 'store:product-detail' product.slug %}">
+        {% if product.image %}
+          <img class="thumb" src="{{ product.image.url }}" alt="{{ product.name }}">
+        {% else %}
+          <div class="thumb thumb-placeholder">{{ product.category.name|slice:":1" }}</div>
+        {% endif %}
+        <div class="cat">{{ product.category.name }}</div>
+        <div class="name">{{ product.name|highlight:query }}</div>
+        <div class="brand">{{ product.brand }}</div>
+        <div class="price-row">
+          <span class="price">৳{{ product.price }}</span>
+          {% if product.stock > 0 %}
+            <span class="stock in-stock">In stock</span>
+          {% else %}
+            <span class="stock out-stock">Out of stock</span>
+          {% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    {% if query %}No products found for "<strong>{{ query }}</strong>".{% else %}No products match these filters.{% endif %}
+  </div>
+{% endif %}

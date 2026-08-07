@@ -1,0 +1,64 @@
+{% extends "store/base.html" %}
+{% block title %}Checkout — ShopFast{% endblock %}
+
+{% block extra_head %}
+<style>
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13.5px; margin-bottom: 20px; }
+  .checkout-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .checkout-table th, .checkout-table td { text-align: left; padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--line); }
+  .checkout-table th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  .checkout-table tr:last-child td { border-bottom: none; }
+  .summary { max-width: 320px; margin-left: auto; margin-top: 20px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .summary-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
+  .summary-total { font-weight: 700; font-size: 16px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 6px; }
+  .place-order-btn { width: 100%; text-align: center; margin-top: 14px; }
+  .checkout-note { font-size: 12px; color: var(--muted); margin-top: 10px; text-align: center; }
+  .field { margin: 16px 0; }
+  .field label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .field input {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .bkash-badge {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+    color: #E2136E; background: #fde8f0; border: 1px solid #f6c3da; border-radius: 20px; padding: 3px 10px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Checkout</h1>
+<p class="sub">Signed in as <strong>{{ user.username }}</strong>. Review your order before placing it.</p>
+
+<table class="checkout-table">
+  <thead>
+    <tr><th>Item</th><th>Price</th><th>Qty</th><th>Subtotal</th></tr>
+  </thead>
+  <tbody>
+    {% for item in cart %}
+      <tr>
+        <td>{{ item.product.name }}</td>
+        <td>৳{{ item.price }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>৳{{ item.subtotal }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="summary">
+  <div class="summary-row"><span>Items</span><span>{{ cart|length }}</span></div>
+  <div class="summary-row summary-total"><span>Total</span><span>৳{{ cart.get_total }}</span></div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="field">
+      <label for="payer_reference">Mobile number (bKash account)</label>
+      <input type="text" id="payer_reference" name="payer_reference" placeholder="01XXXXXXXXX" required>
+    </div>
+    <button type="submit" class="btn place-order-btn"><span class="bkash-badge">bKash</span>&nbsp; Pay now</button>
+  </form>
+  <div class="checkout-note">You'll be redirected to bKash to complete payment securely.</div>
+</div>
+{% endblock %}

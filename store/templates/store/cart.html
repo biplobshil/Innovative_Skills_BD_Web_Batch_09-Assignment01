@@ -1,0 +1,102 @@
+{% extends "store/base.html" %}
+{% block title %}Your Cart — ShopFast{% endblock %}
+
+{% block extra_head %}
+<style>
+  h1 { font-size: 22px; margin: 0 0 20px; }
+  .cart-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .cart-table th, .cart-table td { text-align: left; padding: 14px 16px; font-size: 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .cart-table th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  .cart-table tr:last-child td { border-bottom: none; }
+  .item-info { display: flex; align-items: center; gap: 12px; }
+  .item-thumb { width: 52px; height: 52px; border-radius: 8px; object-fit: contain; background: #f1f1f4; flex-shrink: 0; }
+  .item-thumb-placeholder {
+    width: 52px; height: 52px; border-radius: 8px; background: #f1f1f4; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; color: #c7c7d1;
+  }
+  .item-name { font-weight: 600; font-size: 14px; }
+  .item-brand { font-size: 12px; color: var(--muted); }
+  .qty-form { display: flex; align-items: center; gap: 8px; }
+  .qty-form input {
+    width: 56px; padding: 6px 8px; border: 1.5px solid var(--line); border-radius: 6px; font-size: 13.5px;
+  }
+  .qty-form button, .remove-form button {
+    background: none; border: none; color: var(--accent); font-size: 12.5px; cursor: pointer; padding: 4px 8px;
+  }
+  .remove-form button { color: #c23838; }
+  .cart-summary {
+    max-width: 320px; margin-left: auto; margin-top: 20px;
+    background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px;
+  }
+  .summary-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
+  .summary-total { font-weight: 700; font-size: 16px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 6px; }
+  .empty-cart { color: var(--muted); font-size: 14px; padding: 60px 0; text-align: center; }
+  .empty-cart a { color: var(--accent); font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Your cart</h1>
+
+{% with items=cart|length %}
+{% if items %}
+  <table class="cart-table">
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Subtotal</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in cart %}
+        <tr>
+          <td>
+            <div class="item-info">
+              {% if item.product.image %}
+                <img class="item-thumb" src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+              {% else %}
+                <div class="item-thumb-placeholder">{{ item.product.category.name|slice:":1" }}</div>
+              {% endif %}
+              <div>
+                <div class="item-name">
+                  <a href="{% url 'store:product-detail' item.product.slug %}">{{ item.product.name }}</a>
+                </div>
+                <div class="item-brand">{{ item.product.brand }}</div>
+              </div>
+            </div>
+          </td>
+          <td>৳{{ item.price }}</td>
+          <td>
+            <form class="qty-form" method="post" action="{% url 'store:cart-update' item.product.id %}">
+              {% csrf_token %}
+              <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.product.stock }}">
+              <button type="submit">Update</button>
+            </form>
+          </td>
+          <td>৳{{ item.subtotal }}</td>
+          <td>
+            <form class="remove-form" method="post" action="{% url 'store:cart-remove' item.product.id %}">
+              {% csrf_token %}
+              <button type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="cart-summary">
+    <div class="summary-row"><span>Items</span><span>{{ items }}</span></div>
+    <div class="summary-row summary-total"><span>Total</span><span>৳{{ cart.get_total }}</span></div>
+    <a href="{% url 'store:checkout' %}" class="btn" style="display:block; width:100%; text-align:center; margin-top:14px; box-sizing:border-box;">Proceed to checkout</a>
+  </div>
+{% else %}
+  <div class="empty-cart">
+    Your cart is empty. <a href="{% url 'store:product-list' %}">Browse products →</a>
+  </div>
+{% endif %}
+{% endwith %}
+{% endblock %}

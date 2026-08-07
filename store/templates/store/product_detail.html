@@ -1,0 +1,100 @@
+{% extends "store/base.html" %}
+{% block title %}{{ product.name }} — ShopFast{% endblock %}
+
+{% block extra_head %}
+<style>
+  .back-link { font-size: 13px; color: var(--muted); margin-bottom: 18px; display: inline-block; }
+  .detail { display: grid; grid-template-columns: 340px 1fr; gap: 32px; }
+  @media (max-width: 680px) { .detail { grid-template-columns: 1fr; } }
+  .detail-image {
+    width: 100%; aspect-ratio: 1; object-fit: contain;
+    border-radius: 14px; background: #f1f1f4;
+  }
+  .detail-image-placeholder {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px; font-weight: 700; color: #c7c7d1;
+  }
+  .breadcrumb { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+  h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .detail-brand { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+  .detail-price { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+  .detail-desc { line-height: 1.6; color: #34343d; margin: 18px 0 24px; max-width: 60ch; }
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 14px;
+    margin-top: 12px;
+  }
+  .stock { font-size: 11px; padding: 2px 7px; border-radius: 20px; }
+  .in-stock { background: #e8f7ec; color: #1c8a3c; }
+  .out-stock { background: #fdeaea; color: #c23838; }
+  .cart-form { display: flex; gap: 10px; align-items: center; }
+  .qty-input {
+    width: 64px; padding: 10px 10px; border: 1.5px solid var(--line); border-radius: 8px;
+    font-size: 14px; font-family: inherit;
+  }
+  .qty-input:focus { outline: none; border-color: var(--accent); }
+  .thumb { width: 100%; height: 100px; object-fit: contain; border-radius: 8px; margin-bottom: 8px; background: #f1f1f4; }
+  .cat { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); font-weight: 600; }
+  .name { font-size: 13.5px; font-weight: 600; margin: 3px 0 2px; }
+  .price { font-size: 14px; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{% url 'store:product-list' %}">← Back to all products</a>
+
+<div class="detail">
+  <div>
+    {% if product.image %}
+      <img class="detail-image" src="{{ product.image.url }}" alt="{{ product.name }}">
+    {% else %}
+      <div class="detail-image detail-image-placeholder">{{ product.category.name|slice:":1" }}</div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="breadcrumb">{{ product.category.name }}</div>
+    <h1>{{ product.name }}</h1>
+    <div class="detail-brand">by {{ product.brand|default:"Unbranded" }}</div>
+    <div class="detail-price">৳{{ product.price }}</div>
+
+    {% if product.stock > 0 %}
+      <span class="stock in-stock">In stock — {{ product.stock }} available</span>
+    {% else %}
+      <span class="stock out-stock">Out of stock</span>
+    {% endif %}
+
+    <p class="detail-desc">{{ product.description|default:"No description available." }}</p>
+
+    {% if product.stock > 0 %}
+      <form method="post" action="{% url 'store:cart-add' product.id %}" class="cart-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" class="qty-input">
+        <button type="submit" class="btn">Add to cart</button>
+      </form>
+    {% else %}
+      <button class="btn" disabled>Add to cart</button>
+    {% endif %}
+  </div>
+</div>
+
+{% if related %}
+  <h3 style="margin-top:40px;">More in {{ product.category.name }}</h3>
+  <div class="related-grid">
+    {% for r in related %}
+      <a class="card" href="{% url 'store:product-detail' r.slug %}">
+        {% if r.image %}
+          <img class="thumb" src="{{ r.image.url }}" alt="{{ r.name }}">
+        {% else %}
+          <div class="thumb" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#c7c7d1;">{{ r.category.name|slice:":1" }}</div>
+        {% endif %}
+        <div class="cat">{{ r.category.name }}</div>
+        <div class="name">{{ r.name }}</div>
+        <div class="price">৳{{ r.price }}</div>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

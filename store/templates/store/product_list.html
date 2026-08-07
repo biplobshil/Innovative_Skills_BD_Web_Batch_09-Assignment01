@@ -1,0 +1,170 @@
+{% extends "store/base.html" %}
+{% block title %}Products — ShopFast{% endblock %}
+
+{% block extra_head %}
+<style>
+  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+
+  .sidebar { position: sticky; top: 80px; }
+  .sidebar h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
+  .cat-list { list-style: none; margin: 0 0 22px; padding: 0; }
+  .cat-list li a { display: block; padding: 6px 0; font-size: 14px; color: var(--ink); }
+  .cat-list li a.active { color: var(--accent); font-weight: 600; }
+  .cat-list li a:hover { color: var(--accent); }
+
+  .price-form input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    font-size: 13.5px;
+    margin-bottom: 8px;
+  }
+
+  .search-wrap { position: relative; max-width: 100%; margin-bottom: 18px; }
+  #search-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  #search-input:focus { border-color: var(--accent); }
+  #search-status { font-size: 12px; color: var(--muted); margin-top: 6px; height: 16px; }
+
+  .results-meta { font-size: 13px; margin-bottom: 12px; }
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px;
+  }
+  .product-card { display: block; }
+  .thumb {
+    width: 100%; height: 110px; object-fit: contain;
+    border-radius: 8px; margin-bottom: 10px; background: #f1f1f4;
+  }
+  .thumb-placeholder {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; color: #c7c7d1;
+  }
+  .cat { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); font-weight: 600; }
+  .name { font-size: 14.5px; font-weight: 600; margin: 4px 0 2px; line-height: 1.3; }
+  .brand { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+  .price-row { display: flex; align-items: center; justify-content: space-between; }
+  .price { font-size: 15px; font-weight: 700; }
+  .stock { font-size: 11px; padding: 2px 7px; border-radius: 20px; }
+  .in-stock { background: #e8f7ec; color: #1c8a3c; }
+  .out-stock { background: #fdeaea; color: #c23838; }
+  .empty { color: var(--muted); font-size: 14px; padding: 40px 0; text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="layout">
+
+  <aside class="sidebar">
+    <h4>Categories</h4>
+    <ul class="cat-list">
+      <li><a href="{% url 'store:product-list' %}" class="{% if not selected_category %}active{% endif %}">All</a></li>
+      {% for cat in categories %}
+        <li>
+          <a href="?category={{ cat.slug }}" data-slug="{{ cat.slug }}"
+             class="{% if selected_category == cat.slug %}active{% endif %}">{{ cat.name }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <h4>Price range</h4>
+    <form class="price-form" id="price-form">
+      <input type="number" name="min_price" id="min_price" placeholder="Min ৳" value="{{ min_price }}">
+      <input type="number" name="max_price" id="max_price" placeholder="Max ৳" value="{{ max_price }}">
+    </form>
+  </aside>
+
+  <section>
+    <div class="search-wrap">
+      <input id="search-input" type="text" placeholder="Search products, brands, categories…"
+             autocomplete="off" value="{{ query }}">
+      <div id="search-status"></div>
+    </div>
+
+    <div id="product-grid">
+      {% include "store/partials/product_grid.html" %}
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ---- Live, server-rendered search ----
+// On every keystroke (debounced) we re-fetch the *same page's* results
+// fragment from Django and swap it in — no client-side JSON/templating.
+const SEARCH_URL = "{% url 'store:product-search-fragment' %}";
+const DEBOUNCE_MS = 300;
+
+const searchInput = document.getElementById("search-input");
+const statusEl = document.getElementById("search-status");
+const gridEl = document.getElementById("product-grid");
+const minPriceInput = document.getElementById("min_price");
+const maxPriceInput = document.getElementById("max_price");
+
+const params = new URLSearchParams(window.location.search);
+let selectedCategory = params.get("category") || "";
+
+let debounceTimer = null;
+let activeController = null;
+let requestSeq = 0;
+
+async function fetchResults() {
+  const seq = ++requestSeq;
+  if (activeController) activeController.abort();
+  activeController = new AbortController();
+
+  const query = new URLSearchParams({
+    q: searchInput.value.trim(),
+    category: selectedCategory,
+    min_price: minPriceInput.value.trim(),
+    max_price: maxPriceInput.value.trim(),
+  });
+
+  statusEl.textContent = "Searching…";
+  try {
+    const res = await fetch(`${SEARCH_URL}?${query.toString()}`, { signal: activeController.signal });
+    const html = await res.text();
+    if (seq !== requestSeq) return; // a newer request already superseded this one
+    gridEl.innerHTML = html;
+    statusEl.textContent = "";
+
+    // keep the URL shareable/bookmarkable without a full reload
+    const newUrl = `${window.location.pathname}?${query.toString()}`;
+    window.history.replaceState({}, "", newUrl);
+  } catch (err) {
+    if (err.name !== "AbortError") statusEl.textContent = "Search failed.";
+  }
+}
+
+function debouncedFetch() {
+  clearTimeout(debounceTimer);
+  statusEl.textContent = "Typing…";
+  debounceTimer = setTimeout(fetchResults, DEBOUNCE_MS);
+}
+
+searchInput.addEventListener("input", debouncedFetch);
+minPriceInput.addEventListener("input", debouncedFetch);
+maxPriceInput.addEventListener("input", debouncedFetch);
+
+// Category links: intercept clicks to filter live instead of a full page reload
+document.querySelectorAll(".cat-list a").forEach((link) => {
+  link.addEventListener("click", (e) => {
+    e.preventDefault();
+    document.querySelectorAll(".cat-list a").forEach((a) => a.classList.remove("active"));
+    link.classList.add("active");
+    selectedCategory = link.dataset.slug || "";
+    fetchResults();
+  });
+});
+</script>
+{% endblock %}

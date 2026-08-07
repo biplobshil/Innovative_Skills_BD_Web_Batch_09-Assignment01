@@ -1,0 +1,46 @@
+{% extends "store/base.html" %}
+{% block title %}Sign up — ShopFast{% endblock %}
+
+{% block extra_head %}
+<style>
+  .auth-panel { max-width: 380px; margin: 40px auto 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+  .auth-panel h1 { font-size: 20px; margin: 0 0 6px; }
+  .auth-panel .sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .field input {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .field .helptext { display: block; font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .field .errorlist { list-style: none; padding: 0; margin: 6px 0 0; color: #c23838; font-size: 12.5px; }
+  .auth-panel .btn { width: 100%; text-align: center; }
+  .auth-switch { font-size: 13px; color: var(--muted); margin-top: 16px; text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-panel">
+  <h1>Create an account</h1>
+  <p class="sub">You'll need an account to check out.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="btn">Sign up</button>
+  </form>
+
+  <div class="auth-switch">
+    Already have an account?
+    <a href="{% url 'login' %}{% if next %}?next={{ next }}{% endif %}">Log in</a>
+  </div>
+</div>
+{% endblock %}
